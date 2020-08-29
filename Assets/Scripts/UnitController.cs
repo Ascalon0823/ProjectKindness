@@ -1,30 +1,25 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
 public class UnitController : MonoBehaviour
 {
-    private bool _selected;
+    bool _selected;
     [SerializeField]
     Animator _charAnimator;
-
-    // Start is called before the first frame update
-    void Start()
+    [SerializeField]
+    Unit _unit;
+    public bool Ready;
+    public bool Friendly;
+    public void SetupAs(Unit unit)
     {
-
+        _unit = unit;
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        _charAnimator.SetFloat("xSpeed", 1f);
-    }
     public void OnSelected()
     {
+        if (Ready)
+        {
 
-    }
-    public void MoveToCell(int x, int y)
-    {
-
+        }
     }
 }
