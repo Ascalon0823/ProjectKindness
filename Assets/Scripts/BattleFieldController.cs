@@ -20,13 +20,22 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     Dictionary<Vector2Int, UnitController> _unitCoord;
     private Vector3 offset =>
          -new Vector3(_width * GridCellSize / 2f, _height * GridCellSize / 2f);
+
     [SerializeField]
     BoxCollider2D _gridPhysics;
     [SerializeField]
-    SpriteRenderer _rangeTilePrefab;
+    SpriteRenderer _tilePrefab;
     [SerializeField]
-    Transform _rangeRenderHolder;
-    List<SpriteRenderer> _currentRangeTiles;
+    Color green;
+    [SerializeField]
+    Color empty;
+    [SerializeField]
+    Color red;
+    [SerializeField]
+    Color clear;
+    SpriteRenderer[,] _tiles;
+    [SerializeField]
+    Transform _tileHolder;
     public UnitController GetUnitControllerFromCoord(Vector2Int coord)
     {
         if (_unitCoord.TryGetValue(coord, out UnitController _unitc))
@@ -51,19 +60,24 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     }
     public void ClearCurrentRangeTiles()
     {
-        if (_currentRangeTiles != null && _currentRangeTiles.Count > 0)
+        for (int i = 0; i < _tiles.GetLength(0); i++)
         {
-            foreach (var tile in _currentRangeTiles)
+            for (int j = 0; j < _tiles.GetLength(1); j++)
             {
-                Destroy(tile.gameObject);
+                _tiles[i, j].color = empty;
             }
-            _currentRangeTiles.Clear();
         }
     }
     public void AddUnitToBattleField(UnitController unit, int x, int y)
     {
         _unitCoord[new Vector2Int(x, y)] = unit;
-        unit.transform.position = GetCellWorldPos(x, y);
+        unit.SetPos(x, y);
+    }
+    public void UpdateUnitPos(UnitController unit, int x, int y)
+    {
+        _unitCoord[unit.Pos] = null;
+        _unitCoord[new Vector2Int(x, y)] = unit;
+        unit.SetPos(x, y);
     }
     public void DrawBoxRange(Vector2Int from, Vector2Int to)
     {
@@ -92,15 +106,11 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         }
 
     }
-    public SpriteRenderer DrawRangeTile(int x, int y)
+    public void DrawRangeTile(int x, int y)
     {
-        var tile = Instantiate(_rangeTilePrefab, Vector3.zero, Quaternion.identity);
-        tile.transform.SetParent(_rangeRenderHolder, false);
-        tile.transform.localPosition = GetCellWorldPos(x, y) + new Vector3(GridCellSize / 2f, GridCellSize / 2f);
-        tile.transform.localScale = Vector3.one * (_gridCellSize - 0.15f);
-        if (_currentRangeTiles == null) _currentRangeTiles = new List<SpriteRenderer>();
-        _currentRangeTiles.Add(tile);
-        return tile;
+        if (x < 0 || x >= Width || y < 0 || y >= Height) return;
+        var tile = _tiles[x, y];
+        tile.color = green;
     }
     void Awake()
     {
@@ -112,8 +122,37 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         _grid = new Grid(_width, _height);
         _gridPhysics.size = new Vector2(_width, _height) * GridCellSize;
         _unitCoord = new Dictionary<Vector2Int, UnitController>();
+        GenerateTiles();
     }
 
+    void DestroyAllTiles()
+    {
+        if (_tiles == null) return;
+        for (int i = 0; i < _tiles.GetLength(0); i++)
+        {
+            for (int j = 0; j < _tiles.GetLength(1); j++)
+            {
+                if (_tiles[i, j] == null) continue;
+                Destroy(_tiles[i, j]);
+            }
+        }
+    }
+    void GenerateTiles()
+    {
+        DestroyAllTiles();
+        _tiles = new SpriteRenderer[_width, _height];
+        for (int i = 0; i < Width; i++)
+        {
+            for (int j = 0; j < Height; j++)
+            {
+                var tile = Instantiate(_tilePrefab, Vector3.zero, Quaternion.identity);
+                tile.transform.SetParent(_tileHolder, false);
+                tile.transform.localPosition = GetCellWorldPos(i, j) + new Vector3(GridCellSize / 2f, GridCellSize / 2f);
+                tile.transform.localScale = Vector3.one * (_gridCellSize - 0.15f);
+                _tiles[i, j] = tile;
+            }
+        }
+    }
     // Update is called once per frame
     void Update()
     {
@@ -162,8 +201,26 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 
         if (unitc != null)
         {
-            DrawSphereRange(cell, unitc.LoadedUnit.Speed);
+            if (unitc == BattleController.CurrentBattle.SelectedUnit)
+            {
+                unitc.Deselect();
+            }
+            else
+            {
+                unitc.Select();
+            }
         }
-
+        else
+        {
+            if (BattleController.CurrentBattle.SelectedUnit != null
+            && BattleController.CurrentBattle.SelectedUnit.Ready
+            && BattleController.CurrentBattle.SelectedUnit.Friendly
+            && BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y))
+            {
+                UpdateUnitPos(BattleController.CurrentBattle.SelectedUnit, cell.x, cell.y);
+                DrawSphereRange(cell, BattleController.CurrentBattle.SelectedUnit.LoadedUnit.Speed);
+                BattleController.CurrentBattle.SelectedUnit.Ready = false;
+            }
+        }
     }
 }

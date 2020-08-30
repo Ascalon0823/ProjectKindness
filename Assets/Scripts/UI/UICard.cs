@@ -15,6 +15,10 @@ public class UICard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
     public void Select()
     {
         _selected = true;
+        if (BattleController.CurrentBattle.SelectedUnit != null)
+        {
+            BattleController.CurrentBattle.SelectedUnit.Deselect();
+        }
         UIHand.CurrentHand.SelectedCard?.Deselect();
         UIHand.CurrentHand.SetSelectedCard(this);
         OnSelected();
@@ -58,7 +62,6 @@ public class UICard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
     }
     protected virtual void OnSelected()
     {
-
     }
     protected virtual void OnDeselected()
     {

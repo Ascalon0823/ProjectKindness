@@ -30,11 +30,12 @@ public class UIUnitCard : UICard
         var newunit = (BattleController.CurrentBattle.SelectedCard as UIUnitCard).LoadedUnit;
         if (BattleController.CurrentBattle.PlayerHero.CurrentCommandPoint < newunit.DeployCost
         || x > LoadedUnit.Speed) return;
-        BattleController.CurrentBattle.DeployUnit(newunit, x, y, true);
         base.Use(x, y);
+        BattleController.CurrentBattle.DeployUnit(newunit, x, y, true);
     }
     protected override void OnSelected()
     {
+        base.OnSelected();
         BattleFieldController.ActiveBattleField.DrawBoxRange(Vector2Int.zero, new Vector2Int(LoadedUnit.Speed, BattleFieldController.ActiveBattleField.Height - 1));
     }
     protected override void OnDeselected()

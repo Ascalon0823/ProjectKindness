@@ -18,6 +18,9 @@ public class BattleController : MonoBehaviour
     UnitController _unitControllerPrefab;
     List<UnitController> _deployedUnits;
     public UICard SelectedCard => UIHand.CurrentHand.SelectedCard;
+    public UnitController SelectedUnit => _selectedUnit;
+    [SerializeField]
+    UnitController _selectedUnit;
     void Awake()
     {
         CurrentBattle = this;
@@ -113,6 +116,10 @@ public class BattleController : MonoBehaviour
             _playerHero.RefreshCommandPoint();
             UIHand.CurrentHand.AddCardIntoHand(_playerHero.CurrentDeck.Draw());
         }
+    }
+    public void SetSelectController(UnitController unitc)
+    {
+        _selectedUnit = unitc;
     }
 
 }

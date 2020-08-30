@@ -44,3 +44,12 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: CharBG
+    uniqueID: 3430359283
+    locked: 0
+  - name: Char
+    uniqueID: 2635784929
+    locked: 0
+  - name: CharUI
+    uniqueID: 1622645189
+    locked: 0
