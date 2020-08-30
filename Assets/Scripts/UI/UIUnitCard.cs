@@ -25,5 +25,20 @@ public class UIUnitCard : UICard
         _powerText.text = _loadedUnit.Power.ToString();
         _lifeText.text = _loadedUnit.Life.ToString();
     }
-
+    public override void Use(int x, int y)
+    {
+        var newunit = (BattleController.CurrentBattle.SelectedCard as UIUnitCard).LoadedUnit;
+        if (BattleController.CurrentBattle.PlayerHero.CurrentCommandPoint < newunit.DeployCost
+        || x > LoadedUnit.Speed) return;
+        BattleController.CurrentBattle.DeployUnit(newunit, x, y, true);
+        base.Use(x, y);
+    }
+    protected override void OnSelected()
+    {
+        BattleFieldController.ActiveBattleField.DrawBoxRange(Vector2Int.zero, new Vector2Int(LoadedUnit.Speed, BattleFieldController.ActiveBattleField.Height - 1));
+    }
+    protected override void OnDeselected()
+    {
+        BattleFieldController.ActiveBattleField.ClearCurrentRangeTiles();
+    }
 }

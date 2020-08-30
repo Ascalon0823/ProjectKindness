@@ -91,12 +91,13 @@ public class BattleController : MonoBehaviour
     public UnitController DeployUnit(Unit unit, int x, int y, bool friendly, bool ready = true)
     {
         var unitController = Instantiate(_unitControllerPrefab,
-            BattleFieldController.ActiveBattleField.GetCellWorldPos(x, y), Quaternion.identity);
+            Vector3.zero, Quaternion.identity);
         unitController.SetupAs(unit);
         unitController.Friendly = friendly;
         unitController.Ready = true;
         _deployedUnits.Add(unitController);
         _playerHero.SpendCommandPoint(unit.DeployCost);
+        BattleFieldController.ActiveBattleField.AddUnitToBattleField(unitController, x, y);
         return unitController;
     }
     public void CheckBattleStatus()

@@ -6,6 +6,7 @@ public class UnitController : MonoBehaviour
     bool _selected;
     [SerializeField]
     Animator _charAnimator;
+    public Unit LoadedUnit => _unit;
     [SerializeField]
     Unit _unit;
     public bool Ready;

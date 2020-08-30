@@ -17,11 +17,13 @@ public class UICard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
         _selected = true;
         UIHand.CurrentHand.SelectedCard?.Deselect();
         UIHand.CurrentHand.SetSelectedCard(this);
+        OnSelected();
     }
     public void Deselect()
     {
         _selected = false;
         UIHand.CurrentHand.SetSelectedCard(null);
+        OnDeselected();
     }
     void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
     {
@@ -48,5 +50,18 @@ public class UICard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
     public void OnPointerEnter(PointerEventData eventData)
     {
         Debug.Log("Card been hovered" + this);
+    }
+    public virtual void Use(int x, int y)
+    {
+        Deselect();
+        Destroy(gameObject);
+    }
+    protected virtual void OnSelected()
+    {
+
+    }
+    protected virtual void OnDeselected()
+    {
+
     }
 }

@@ -568,6 +568,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 568806518}
   m_CullTransparentMesh: 0
+--- !u!1 &945672229
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 945672230}
+  m_Layer: 8
+  m_Name: GridRange
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &945672230
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 945672229}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1122100227}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1095089974
 GameObject:
   m_ObjectHideFlags: 0
@@ -677,6 +707,9 @@ MonoBehaviour:
   _height: 8
   _gridCellSize: 1
   _gridPhysics: {fileID: 1122100228}
+  _rangeTilePrefab: {fileID: 3736929287186467444, guid: b5b130aa216d2a54294d8d655bbca137,
+    type: 3}
+  _rangeRenderHolder: {fileID: 945672230}
 --- !u!4 &1122100227
 Transform:
   m_ObjectHideFlags: 0
@@ -689,6 +722,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 353823214}
+  - {fileID: 945672230}
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

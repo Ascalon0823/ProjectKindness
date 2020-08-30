@@ -22,7 +22,11 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
          -new Vector3(_width * GridCellSize / 2f, _height * GridCellSize / 2f);
     [SerializeField]
     BoxCollider2D _gridPhysics;
-
+    [SerializeField]
+    SpriteRenderer _rangeTilePrefab;
+    [SerializeField]
+    Transform _rangeRenderHolder;
+    List<SpriteRenderer> _currentRangeTiles;
     public UnitController GetUnitControllerFromCoord(Vector2Int coord)
     {
         if (_unitCoord.TryGetValue(coord, out UnitController _unitc))
@@ -40,6 +44,63 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     {
         var core = ((pos - offset) / _gridCellSize);
         return new Vector2Int(Mathf.FloorToInt(core.x), Mathf.FloorToInt(core.y));
+    }
+    public Vector2Int GetCellFromCursor()
+    {
+        return GetCellFromWordPos(Camera.main.ScreenToWorldPoint(Input.mousePosition));
+    }
+    public void ClearCurrentRangeTiles()
+    {
+        if (_currentRangeTiles != null && _currentRangeTiles.Count > 0)
+        {
+            foreach (var tile in _currentRangeTiles)
+            {
+                Destroy(tile.gameObject);
+            }
+            _currentRangeTiles.Clear();
+        }
+    }
+    public void AddUnitToBattleField(UnitController unit, int x, int y)
+    {
+        _unitCoord[new Vector2Int(x, y)] = unit;
+        unit.transform.position = GetCellWorldPos(x, y);
+    }
+    public void DrawBoxRange(Vector2Int from, Vector2Int to)
+    {
+        ClearCurrentRangeTiles();
+
+        var min = new Vector2Int(Mathf.Min(from.x, to.x), Mathf.Min(from.y, to.y));
+        var max = new Vector2Int(Mathf.Max(from.x, to.x), Mathf.Max(from.y, to.y));
+        for (int x = min.x; x <= max.x; x++)
+        {
+            for (int y = min.y; y <= max.y; y++)
+            {
+                DrawRangeTile(x, y);
+            }
+        }
+    }
+    public void DrawSphereRange(Vector2Int center, int radius)
+    {
+        ClearCurrentRangeTiles();
+        for (int r = radius; r >= -radius; r--)
+        {
+            var off = radius - Mathf.Abs(r);
+            for (int x = center.x - off; x <= center.x + off; x++)
+            {
+                DrawRangeTile(x, center.y + r);
+            }
+        }
+
+    }
+    public SpriteRenderer DrawRangeTile(int x, int y)
+    {
+        var tile = Instantiate(_rangeTilePrefab, Vector3.zero, Quaternion.identity);
+        tile.transform.SetParent(_rangeRenderHolder, false);
+        tile.transform.localPosition = GetCellWorldPos(x, y) + new Vector3(GridCellSize / 2f, GridCellSize / 2f);
+        tile.transform.localScale = Vector3.one * (_gridCellSize - 0.15f);
+        if (_currentRangeTiles == null) _currentRangeTiles = new List<SpriteRenderer>();
+        _currentRangeTiles.Add(tile);
+        return tile;
     }
     void Awake()
     {
@@ -82,26 +143,27 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         Gizmos.DrawLine(GetCellWorldPos(cell.x + 1, cell.y), GetCellWorldPos(cell.x + 1, cell.y + 1));
         Gizmos.DrawLine(GetCellWorldPos(cell.x, cell.y + 1), GetCellWorldPos(cell.x + 1, cell.y + 1));
     }
-    public Vector2Int GetCellFromCursor()
-    {
-        return GetCellFromWordPos(Camera.main.ScreenToWorldPoint(Input.mousePosition));
-    }
+
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!BattleController.CurrentBattle.PlayerTurn) return;
+        if (!BattleController.CurrentBattle.PlayerTurn || eventData.button != PointerEventData.InputButton.Left) return;
         var cell = GetCellFromCursor();
         Debug.Log($"Click on battle field { cell }");
+        var unitc = GetUnitControllerFromCoord(cell);
         if (BattleController.CurrentBattle.SelectedCard != null)
         {
-            if (BattleController.CurrentBattle.SelectedCard is UIUnitCard && GetUnitControllerFromCoord(cell) == null)
+            if (BattleController.CurrentBattle.SelectedCard is UIUnitCard && unitc == null)
             {
-
-                var unit = (BattleController.CurrentBattle.SelectedCard as UIUnitCard).LoadedUnit;
-                if (BattleController.CurrentBattle.PlayerHero.CurrentCommandPoint < unit.DeployCost) return;
-                var controller = BattleController.CurrentBattle.DeployUnit(unit, cell.x, cell.y, true);
-                _unitCoord[cell] = controller;
+                BattleController.CurrentBattle.SelectedCard.Use(cell.x, cell.y);
             }
+            return;
         }
+
+        if (unitc != null)
+        {
+            DrawSphereRange(cell, unitc.LoadedUnit.Speed);
+        }
+
     }
 }

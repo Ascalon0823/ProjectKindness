@@ -5,8 +5,6 @@ using UnityEngine.UI;
 public class UIHand : MonoBehaviour
 {
     public static UIHand CurrentHand;
-    List<UICard> _currentCards;
-    List<UICard> CurrentCards => _currentCards;
     [SerializeField]
     UIUnitCard _uiUnitCardPrefab;
     [SerializeField]
@@ -17,7 +15,6 @@ public class UIHand : MonoBehaviour
     void Awake()
     {
         CurrentHand = this;
-        _currentCards = new List<UICard>();
     }
     public void AddCardIntoHand(Card card)
     {
