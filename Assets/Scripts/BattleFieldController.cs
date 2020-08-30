@@ -220,6 +220,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
                 UpdateUnitPos(BattleController.CurrentBattle.SelectedUnit, cell.x, cell.y);
                 DrawSphereRange(cell, BattleController.CurrentBattle.SelectedUnit.LoadedUnit.Speed);
                 BattleController.CurrentBattle.SelectedUnit.Ready = false;
+                BattleController.CurrentBattle.SelectedUnit.Deselect();
             }
         }
     }
