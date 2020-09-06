@@ -5,5 +5,5 @@ using UnityEngine;
 public class Card
 {
     public string Name;
-    public int DeployCost;
+    public int UseCost;
 }

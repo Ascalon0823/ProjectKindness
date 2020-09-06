@@ -17,7 +17,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     private float _gridCellSize;
     public Grid Grid => _grid;
     private Grid _grid;
-    Dictionary<Vector2Int, UnitController> _unitCoord;
+    Dictionary<Vector2Int, UnitController> _unitCoord = new Dictionary<Vector2Int, UnitController>();
     private Vector3 offset =>
          -new Vector3(_width * GridCellSize / 2f, _height * GridCellSize / 2f);
 
@@ -106,9 +106,13 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         }
 
     }
+    public bool ValidPos(int x, int y)
+    {
+        return x >= 0 && x < Width && y >= 0 && y < Height;
+    }
     public void DrawRangeTile(int x, int y)
     {
-        if (x < 0 || x >= Width || y < 0 || y >= Height) return;
+        if (!ValidPos(x, y)) return;
         var tile = _tiles[x, y];
         tile.color = green;
     }
@@ -121,7 +125,6 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     {
         _grid = new Grid(_width, _height);
         _gridPhysics.size = new Vector2(_width, _height) * GridCellSize;
-        _unitCoord = new Dictionary<Vector2Int, UnitController>();
         GenerateTiles();
     }
 
@@ -186,10 +189,25 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!BattleController.CurrentBattle.PlayerTurn || eventData.button != PointerEventData.InputButton.Left) return;
+        if (!BattleController.CurrentBattle.PlayerTurn) return;
+        if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            BattleController.CurrentBattle.SelectedUnit?.Deselect();
+            BattleController.CurrentBattle.SelectedCard?.Deselect();
+        }
+        if (eventData.button != PointerEventData.InputButton.Left) return;
         var cell = GetCellFromCursor();
+        if (!ValidPos(cell.x, cell.y))
+        {
+            {
+                BattleController.CurrentBattle.SelectedUnit?.Deselect();
+                BattleController.CurrentBattle.SelectedCard?.Deselect();
+            }
+        }
         Debug.Log($"Click on battle field { cell }");
         var unitc = GetUnitControllerFromCoord(cell);
+
+
         if (BattleController.CurrentBattle.SelectedCard != null)
         {
             if (BattleController.CurrentBattle.SelectedCard is UIUnitCard && unitc == null)
@@ -201,27 +219,42 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 
         if (unitc != null)
         {
-            if (unitc == BattleController.CurrentBattle.SelectedUnit)
+            if (BattleController.CurrentBattle.SelectedUnit == null)
             {
-                unitc.Deselect();
+                if (unitc.Friendly)
+                {
+                    unitc.Select();
+                }
             }
             else
             {
-                unitc.Select();
+                if (unitc == BattleController.CurrentBattle.SelectedUnit)
+                {
+                    if (unitc.InAction)
+                    {
+                        unitc.CompleteAction();
+                    }
+                }
+                else
+                {
+                    if(BattleController.CurrentBattle.SelectedUnit.CanAttack(unitc)){
+                        BattleController.CurrentBattle.SelectedUnit.Attack(unitc);
+                        BattleController.CurrentBattle.SelectedUnit.CompleteAction();
+                    }
+                }
             }
         }
-        else
+        else if (BattleController.CurrentBattle.SelectedUnit != null && BattleController.CurrentBattle.SelectedUnit.InAction)
         {
-            if (BattleController.CurrentBattle.SelectedUnit != null
-            && BattleController.CurrentBattle.SelectedUnit.Ready
-            && BattleController.CurrentBattle.SelectedUnit.Friendly
-            && BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y))
+            if (BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y))
             {
                 UpdateUnitPos(BattleController.CurrentBattle.SelectedUnit, cell.x, cell.y);
-                DrawSphereRange(cell, BattleController.CurrentBattle.SelectedUnit.LoadedUnit.Speed);
-                BattleController.CurrentBattle.SelectedUnit.Ready = false;
-                BattleController.CurrentBattle.SelectedUnit.Deselect();
             }
         }
+    }
+    bool TryFindShortestPath(Vector2Int from, Vector2Int to, out List<Vector2Int> path)
+    {
+        path = new List<Vector2Int>();
+        return false;
     }
 }

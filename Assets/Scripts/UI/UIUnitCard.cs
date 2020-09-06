@@ -19,7 +19,7 @@ public class UIUnitCard : UICard
     public void SetupAs(Unit unit)
     {
         _loadedUnit = unit;
-        _deployCostText.text = _loadedUnit.DeployCost.ToString();
+        _deployCostText.text = _loadedUnit.UseCost.ToString();
         _nameText.text = _loadedUnit.Name;
         _selected = false;
         _powerText.text = _loadedUnit.Power.ToString();
@@ -28,7 +28,7 @@ public class UIUnitCard : UICard
     public override void Use(int x, int y)
     {
         var newunit = (BattleController.CurrentBattle.SelectedCard as UIUnitCard).LoadedUnit;
-        if (BattleController.CurrentBattle.PlayerHero.CurrentCommandPoint < newunit.DeployCost
+        if (BattleController.CurrentBattle.PlayerHero.CurrentCommandPoint < newunit.UseCost
         || x > LoadedUnit.Speed) return;
         base.Use(x, y);
         BattleController.CurrentBattle.DeployUnit(newunit, x, y, true);

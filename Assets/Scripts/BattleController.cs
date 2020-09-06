@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using System.Linq;
+using UniRx;
 public class BattleController : MonoBehaviour
 {
     public static BattleController CurrentBattle;
@@ -16,11 +17,14 @@ public class BattleController : MonoBehaviour
     Hero _playerHero;
     [SerializeField]
     UnitController _unitControllerPrefab;
-    List<UnitController> _deployedUnits;
+    List<UnitController> _deployedUnits = new List<UnitController>();
+
     public UICard SelectedCard => UIHand.CurrentHand.SelectedCard;
     public UnitController SelectedUnit => _selectedUnit;
     [SerializeField]
     UnitController _selectedUnit;
+    [SerializeField]
+    int _numOfEnemy;
     void Awake()
     {
         CurrentBattle = this;
@@ -42,7 +46,8 @@ public class BattleController : MonoBehaviour
                 {
                     new Unit(){
                         Name = "Spearman",
-                        DeployCost = 1,
+                        UseCost = 1,
+                        ActionCost = 1,
                         Range = false,
                         Power = 1,
                         Life = 3,
@@ -53,7 +58,8 @@ public class BattleController : MonoBehaviour
                 {
                     new Unit(){
                         Name = "Archer",
-                        DeployCost = 1,
+                        UseCost = 1,
+                        ActionCost = 1,
                         Range = true,
                         Power = 1,
                         Life = 2,
@@ -64,7 +70,8 @@ public class BattleController : MonoBehaviour
                 {
                     new Unit(){
                         Name = "Mercenary",
-                        DeployCost = 2,
+                        UseCost = 2,
+                        ActionCost = 1,
                         Range = false,
                         Power = 2,
                         Life = 3,
@@ -77,7 +84,22 @@ public class BattleController : MonoBehaviour
         _playerHero = new Hero(deck, heroUnit);
         UIHero.PlayerUIHero.SetupAs(_playerHero);
         StartBattle();
+        DeployUnit(new Unit()
+        {
+            Name = "OrcWarrior",
+            UseCost = 1,
+            ActionCost = 2,
+            Range = false,
+            Power = 2,
+            Life = 2,
+            Armor = 0,
+            Speed = 4,
+        }, 3, 4, false);
         //Stub
+        Observable.EveryUpdate().Select(x => GetEnemyUnits().Count)
+        .DistinctUntilChanged()
+        .Subscribe(x => _numOfEnemy = x)
+        .AddTo(this);
     }
     public void StartBattle()
     {
@@ -96,12 +118,17 @@ public class BattleController : MonoBehaviour
         var unitController = Instantiate(_unitControllerPrefab,
             Vector3.zero, Quaternion.identity);
         unitController.SetupAs(unit);
-        unitController.Friendly = friendly;
-        unitController.Ready = true;
-        _deployedUnits.Add(unitController);
-        _playerHero.SpendCommandPoint(unit.DeployCost);
+        if (friendly)
+            _playerHero.SpendCommandPoint(unit.UseCost);
         BattleFieldController.ActiveBattleField.AddUnitToBattleField(unitController, x, y);
+        unitController.Friendly = friendly;
+        _deployedUnits.Add(unitController);
+        unitController.OnDeployed();
         return unitController;
+    }
+    public List<UnitController> GetEnemyUnits(bool includeDead = false)
+    {
+        return _deployedUnits.Where(x => !x.Friendly && (!x.IsDead || includeDead)).ToList();
     }
     public void CheckBattleStatus()
     {
@@ -115,6 +142,13 @@ public class BattleController : MonoBehaviour
         {
             _playerHero.RefreshCommandPoint();
             UIHand.CurrentHand.AddCardIntoHand(_playerHero.CurrentDeck.Draw());
+            foreach (var unit in _deployedUnits)
+            {
+                if (unit.Friendly == _playerTurn)
+                {
+                    unit.OnNewTurn();
+                }
+            }
         }
     }
     public void SetSelectController(UnitController unitc)

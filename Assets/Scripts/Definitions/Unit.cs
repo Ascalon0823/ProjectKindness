@@ -9,6 +9,7 @@ public class Unit : Card
     public int Speed;
     public bool Range;
     public int Armor;
+    public int ActionCost;
     public List<Action> Actions;
     public abstract class Action
     {
