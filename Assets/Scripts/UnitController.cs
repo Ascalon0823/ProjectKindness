@@ -124,10 +124,13 @@ public class UnitController : MonoBehaviour
         Pos = new Vector2Int(x, y);
         transform.position = BattleFieldController.ActiveBattleField.GetCellWorldPos(x, y);
     }
-    public bool CanMoveTo(int x, int y)
+    public bool CanMoveTo(int x, int y, out List<Vector2Int> path)
     {
+        path = new List<Vector2Int>();
         return (x != Pos.x || y != Pos.y)
-            && (Mathf.Abs(x - _turnBeginPos.x) + Mathf.Abs(y - _turnBeginPos.y)) <= LoadedUnit.Speed
+            //&& (Mathf.Abs(x - _turnBeginPos.x) + Mathf.Abs(y - _turnBeginPos.y)) <= LoadedUnit.Speed
+            && BattleFieldController.ActiveBattleField.TryFindShortestPath(TurnBeginPos, new Vector2Int(x, y), out path)
+            && path.Count <= LoadedUnit.Speed
             && BattleFieldController.ActiveBattleField.GetUnitControllerFromCoord(new Vector2Int(x, y)) == null;
     }
     public bool HasAnyTargetInRange()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Linq;
 public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 {
     public static BattleFieldController ActiveBattleField;
@@ -13,6 +14,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     [SerializeField]
     private int _height;
     public float GridCellSize => _gridCellSize;
+    public Vector3 HalfGridOffset => new Vector3(GridCellSize, GridCellSize) / 2f;
     [SerializeField]
     private float _gridCellSize;
     public Grid Grid => _grid;
@@ -34,6 +36,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     [SerializeField]
     Color clear;
     SpriteRenderer[,] _tiles;
+    bool[,] _walkable;
     [SerializeField]
     Transform _tileHolder;
     public UnitController GetUnitControllerFromCoord(Vector2Int coord)
@@ -44,14 +47,17 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         }
         return null;
     }
-
+    public Vector3 GetCellWorldPos(Vector2Int v)
+    {
+        return GetCellWorldPos(v.x, v.y);
+    }
     public Vector3 GetCellWorldPos(int x, int y)
     {
-        return new Vector3(x, y) * _gridCellSize + offset;
+        return new Vector3(x, y) * GridCellSize + offset;
     }
     public Vector2Int GetCellFromWordPos(Vector3 pos)
     {
-        var core = ((pos - offset) / _gridCellSize);
+        var core = ((pos - offset) / GridCellSize);
         return new Vector2Int(Mathf.FloorToInt(core.x), Mathf.FloorToInt(core.y));
     }
     public Vector2Int GetCellFromCursor()
@@ -64,7 +70,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         {
             for (int j = 0; j < _tiles.GetLength(1); j++)
             {
-                _tiles[i, j].color = empty;
+                _tiles[i, j].color = _walkable[i, j] ? empty : clear;
             }
         }
     }
@@ -76,6 +82,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     public void UpdateUnitPos(UnitController unit, int x, int y)
     {
         _unitCoord[unit.Pos] = null;
+        _unitCoord.Remove(unit.Pos);
         _unitCoord[new Vector2Int(x, y)] = unit;
         unit.SetPos(x, y);
     }
@@ -101,10 +108,11 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
             var off = radius - Mathf.Abs(r);
             for (int x = center.x - off; x <= center.x + off; x++)
             {
-                DrawRangeTile(x, center.y + r);
+                if (BattleController.CurrentBattle.SelectedUnit != null &&
+                BattleController.CurrentBattle.SelectedUnit.CanMoveTo(x, center.y + r, out List<Vector2Int> path))
+                    DrawRangeTile(x, center.y + r);
             }
         }
-
     }
     public bool ValidPos(int x, int y)
     {
@@ -112,7 +120,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     }
     public void DrawRangeTile(int x, int y)
     {
-        if (!ValidPos(x, y)) return;
+        if (!ValidPos(x, y) || !_walkable[x, y]) return;
         var tile = _tiles[x, y];
         tile.color = green;
     }
@@ -125,6 +133,14 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     {
         _grid = new Grid(_width, _height);
         _gridPhysics.size = new Vector2(_width, _height) * GridCellSize;
+        _walkable = new bool[_width, _height];
+        for (int i = 0; i < Width; i++)
+        {
+            for (int j = 0; j < Height; j++)
+            {
+                _walkable[i, j] = true;
+            }
+        }
         GenerateTiles();
     }
 
@@ -150,9 +166,11 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
             {
                 var tile = Instantiate(_tilePrefab, Vector3.zero, Quaternion.identity);
                 tile.transform.SetParent(_tileHolder, false);
-                tile.transform.localPosition = GetCellWorldPos(i, j) + new Vector3(GridCellSize / 2f, GridCellSize / 2f);
-                tile.transform.localScale = Vector3.one * (_gridCellSize - 0.15f);
+                tile.transform.localPosition = GetCellWorldPos(i, j) + HalfGridOffset;
+                tile.transform.localScale = Vector3.one * (GridCellSize - 0.15f);
                 _tiles[i, j] = tile;
+                if (!_walkable[i, j])
+                    tile.color = clear;
             }
         }
     }
@@ -189,11 +207,21 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+
         if (!BattleController.CurrentBattle.PlayerTurn) return;
         if (eventData.button == PointerEventData.InputButton.Right)
         {
             BattleController.CurrentBattle.SelectedUnit?.Deselect();
             BattleController.CurrentBattle.SelectedCard?.Deselect();
+        }
+        if (eventData.button == PointerEventData.InputButton.Middle)
+        {
+            var destroyCell = GetCellFromCursor();
+            if (ValidPos(destroyCell.x, destroyCell.y))
+            {
+                _walkable[destroyCell.x, destroyCell.y] = !_walkable[destroyCell.x, destroyCell.y];
+                GenerateTiles();
+            }
         }
         if (eventData.button != PointerEventData.InputButton.Left) return;
         var cell = GetCellFromCursor();
@@ -205,6 +233,7 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
             }
         }
         Debug.Log($"Click on battle field { cell }");
+        if (!_walkable[cell.x, cell.y]) return;
         var unitc = GetUnitControllerFromCoord(cell);
 
 
@@ -237,7 +266,8 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
                 }
                 else
                 {
-                    if(BattleController.CurrentBattle.SelectedUnit.CanAttack(unitc)){
+                    if (BattleController.CurrentBattle.SelectedUnit.CanAttack(unitc))
+                    {
                         BattleController.CurrentBattle.SelectedUnit.Attack(unitc);
                         BattleController.CurrentBattle.SelectedUnit.CompleteAction();
                     }
@@ -246,15 +276,103 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         }
         else if (BattleController.CurrentBattle.SelectedUnit != null && BattleController.CurrentBattle.SelectedUnit.InAction)
         {
-            if (BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y))
+            if (BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y, out List<Vector2Int> path))
             {
-                UpdateUnitPos(BattleController.CurrentBattle.SelectedUnit, cell.x, cell.y);
+                for (int i = 0; i < path.Count - 1; i++)
+                {
+                    Debug.DrawLine(GetCellWorldPos(path[i]) + HalfGridOffset, GetCellWorldPos(path[i + 1]) + HalfGridOffset, Color.blue, 5f);
+                }
             }
+
+            // if (BattleController.CurrentBattle.SelectedUnit.CanMoveTo(cell.x, cell.y))
+            // {
+            //     UpdateUnitPos(BattleController.CurrentBattle.SelectedUnit, cell.x, cell.y);
+            // }
         }
     }
-    bool TryFindShortestPath(Vector2Int from, Vector2Int to, out List<Vector2Int> path)
+    int GetHeuristic(Vector2Int from, Vector2Int to)
+    {
+        return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+    }
+    void ConstructPath(Vector2Int curr, ref Stack<Vector2Int> record, Dictionary<Vector2Int, Vector2Int> map)
+    {
+        if (map.TryGetValue(curr, out Vector2Int result) && result != -Vector2Int.one)
+        {
+            record.Push(result);
+            ConstructPath(result, ref record, map);
+        }
+    }
+    List<Vector2Int> GetUnblockedNeighbours(Vector2Int cell)
+    {
+        return GetWalkableNeighbours(cell).Where(_ => !_unitCoord.ContainsKey(cell) || _unitCoord[cell].Friendly).ToList();
+    }
+    List<Vector2Int> GetWalkableNeighbours(Vector2Int cell)
+    {
+        return GetNeighbours(cell).Where(_ => _walkable[_.x, _.y]).ToList();
+    }
+    List<Vector2Int> GetNeighbours(Vector2Int cell)
+    {
+        return new List<Vector2Int>(){
+                new Vector2Int(cell.x+1,cell.y),
+                new Vector2Int(cell.x-1,cell.y),
+                new Vector2Int(cell.x, cell.y-1),
+                new Vector2Int(cell.x, cell.y+1)
+            }.Where(_ => ValidPos(_.x, _.y)).ToList();
+    }
+    public bool TryFindShortestPath(Vector2Int from, Vector2Int to, out List<Vector2Int> path)
     {
         path = new List<Vector2Int>();
+        var closed = new List<Vector2Int>();
+        var open = new List<Vector2Int>() { from };
+        var g = new Dictionary<Vector2Int, int>();
+        var h = new Dictionary<Vector2Int, int>();
+        var f = new Dictionary<Vector2Int, int>();
+        g[from] = 0;
+        h[from] = GetHeuristic(from, to);
+        f[from] = h[from];
+        var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        cameFrom[from] = -Vector2Int.one;
+        while (open.Count > 0)
+        {
+            var x = open.Aggregate((curmin, _) => h[_] < h[curmin] ? _ : curmin);
+            if (x == to)
+            {
+                var record = new Stack<Vector2Int>();
+                record.Push(to);
+                ConstructPath(to, ref record, cameFrom);
+                path = record.ToList();
+                return true;
+            }
+            open.Remove(x);
+            closed.Add(x);
+            foreach (var n in GetUnblockedNeighbours(x))
+            {
+                if (closed.Contains(n)) continue;
+                var temp_g = g[x] + Mathf.Abs(x.x - n.x) + Mathf.Abs(x.y - n.y);
+                var temp_better = false;
+                if (!open.Contains(n))
+                {
+                    temp_better = true;
+                }
+                else if (temp_g < g[n])
+                {
+                    temp_better = true;
+                }
+                else
+                {
+                    temp_better = false;
+                }
+                if (temp_better)
+                {
+                    cameFrom[n] = x;
+                    g[n] = temp_g;
+                    h[n] = GetHeuristic(n, to);
+                    f[n] = g[n] + h[n];
+                    open.Add(n);
+                }
+            }
+        }
+
         return false;
     }
 }
