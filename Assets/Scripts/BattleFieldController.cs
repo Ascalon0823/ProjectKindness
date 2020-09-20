@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Linq;
+using TMPro;
 public class BattleFieldController : MonoBehaviour, IPointerClickHandler
 {
     public static BattleFieldController ActiveBattleField;
@@ -39,6 +40,9 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
     bool[,] _walkable;
     [SerializeField]
     Transform _tileHolder;
+    [SerializeField]
+    TextMeshPro _debugText;
+    TextMeshPro[,] _debugTexts;
     public UnitController GetUnitControllerFromCoord(Vector2Int coord)
     {
         if (_unitCoord.TryGetValue(coord, out UnitController _unitc))
@@ -108,10 +112,16 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
             var off = radius - Mathf.Abs(r);
             for (int x = center.x - off; x <= center.x + off; x++)
             {
-                if (BattleController.CurrentBattle.SelectedUnit != null &&
-                BattleController.CurrentBattle.SelectedUnit.CanMoveTo(x, center.y + r, out List<Vector2Int> path))
-                    DrawRangeTile(x, center.y + r);
+                DrawRangeTile(x, center.y + r);
             }
+        }
+    }
+    public void DrawRangeTiles(List<Vector2Int> tiles)
+    {
+        ClearCurrentRangeTiles();
+        foreach (var t in tiles)
+        {
+            DrawRangeTile(t.x, t.y);
         }
     }
     public bool ValidPos(int x, int y)
@@ -319,6 +329,25 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
                 new Vector2Int(cell.x, cell.y+1)
             }.Where(_ => ValidPos(_.x, _.y)).ToList();
     }
+    public Dictionary<Vector2Int, int> FindMovableRange(Vector2Int from, int speed)
+    {
+        var result = new Dictionary<Vector2Int, int>();
+
+        BFSFillRange(from, speed, ref result);
+        return result;
+    }
+    void BFSFillRange(Vector2Int curr, int remaining, ref Dictionary<Vector2Int, int> result)
+    {
+        if (remaining >= 0 && (!result.TryGetValue(curr, out int remain) || remain < remaining))
+        {
+            result[curr] = remaining;
+            foreach (var n in GetUnblockedNeighbours(curr))
+            {
+                BFSFillRange(n, remaining - 1, ref result);
+            }
+        }
+    }
+
     public bool TryFindShortestPath(Vector2Int from, Vector2Int to, out List<Vector2Int> path)
     {
         path = new List<Vector2Int>();
@@ -332,22 +361,31 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
         f[from] = h[from];
         var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
         cameFrom[from] = -Vector2Int.one;
+        // if (_debugTexts != null)
+        // {
+        //     foreach (var v in _debugTexts)
+        //     {
+        //         if (v != null)
+        //             v.text = "";
+        //     }
+        // }
+
         while (open.Count > 0)
         {
-            var x = open.Aggregate((curmin, _) => h[_] < h[curmin] ? _ : curmin);
-            if (x == to)
-            {
-                var record = new Stack<Vector2Int>();
-                record.Push(to);
-                ConstructPath(to, ref record, cameFrom);
-                path = record.ToList();
-                return true;
-            }
+            var x = open.Aggregate((curmin, _) => f[_] < f[curmin] ? _ : curmin);
+
             open.Remove(x);
             closed.Add(x);
+            Debug.Log(x);
+            if (x == to)
+            {
+                continue;
+            }
             foreach (var n in GetUnblockedNeighbours(x))
             {
+
                 if (closed.Contains(n)) continue;
+
                 var temp_g = g[x] + Mathf.Abs(x.x - n.x) + Mathf.Abs(x.y - n.y);
                 var temp_better = false;
                 if (!open.Contains(n))
@@ -369,10 +407,23 @@ public class BattleFieldController : MonoBehaviour, IPointerClickHandler
                     h[n] = GetHeuristic(n, to);
                     f[n] = g[n] + h[n];
                     open.Add(n);
+                    // if (_debugTexts == null)
+                    // {
+                    //     _debugTexts = new TextMeshPro[Width, Height];
+                    // }
+                    // if (_debugTexts[n.x, n.y] == null)
+                    //     _debugTexts[n.x, n.y] = Instantiate(_debugText, GetCellWorldPos(n) + HalfGridOffset, Quaternion.identity);
+                    // _debugTexts[n.x, n.y].text = g[n] + " " + h[n] + " " + f[n];
                 }
-            }
-        }
 
+            }
+
+        }
+        var record = new Stack<Vector2Int>();
+        record.Push(to);
+        ConstructPath(to, ref record, cameFrom);
+        path = record.ToList();
+        return path.Contains(to);
         return false;
     }
 }

@@ -92,7 +92,9 @@ public class UnitController : MonoBehaviour
     public void BeginAction()
     {
         _inAction = true;
-        BattleFieldController.ActiveBattleField.DrawSphereRange(Pos, LoadedUnit.Speed);
+        var ranges = BattleFieldController.ActiveBattleField.FindMovableRange(TurnBeginPos, LoadedUnit.Speed);
+        BattleFieldController.ActiveBattleField.DrawRangeTiles(ranges.Keys.ToList());
+        //BattleFieldController.ActiveBattleField.DrawSphereRange(TurnBeginPos, LoadedUnit.Speed);
     }
     public void CancelAction()
     {
@@ -130,7 +132,7 @@ public class UnitController : MonoBehaviour
         return (x != Pos.x || y != Pos.y)
             //&& (Mathf.Abs(x - _turnBeginPos.x) + Mathf.Abs(y - _turnBeginPos.y)) <= LoadedUnit.Speed
             && BattleFieldController.ActiveBattleField.TryFindShortestPath(TurnBeginPos, new Vector2Int(x, y), out path)
-            && path.Count <= LoadedUnit.Speed
+            && path.Count <= LoadedUnit.Speed + 1
             && BattleFieldController.ActiveBattleField.GetUnitControllerFromCoord(new Vector2Int(x, y)) == null;
     }
     public bool HasAnyTargetInRange()
