@@ -262,12 +262,13 @@ MonoBehaviour:
       _currentCards: []
     _loadedHeroUnit:
       Name: 
-      DeployCost: 0
+      UseCost: 0
       Power: 0
       Life: 0
       Speed: 0
       Range: 0
       Armor: 0
+      ActionCost: 0
       HeroicPoint: 0
       CommandPoint: 0
     _currentHeroicPoint: 0
@@ -275,6 +276,7 @@ MonoBehaviour:
   _unitControllerPrefab: {fileID: 3258975394215958600, guid: bbdc9b1f50b034a4bad10cc949168a79,
     type: 3}
   _selectedUnit: {fileID: 0}
+  _numOfEnemy: 0
 --- !u!4 &193502896
 Transform:
   m_ObjectHideFlags: 0
@@ -349,12 +351,13 @@ MonoBehaviour:
       _currentCards: []
     _loadedHeroUnit:
       Name: 
-      DeployCost: 0
+      UseCost: 0
       Power: 0
       Life: 0
       Speed: 0
       Range: 0
       Armor: 0
+      ActionCost: 0
       HeroicPoint: 0
       CommandPoint: 0
     _currentHeroicPoint: 0
@@ -631,6 +634,8 @@ MonoBehaviour:
   red: {r: 0, g: 0, b: 0, a: 0}
   clear: {r: 0, g: 0, b: 0, a: 0}
   _tileHolder: {fileID: 659972410}
+  _debugText: {fileID: 4801603154966831385, guid: fcffda49d21c4854f82c87277d4c15ba,
+    type: 3}
 --- !u!4 &1122100227
 Transform:
   m_ObjectHideFlags: 0

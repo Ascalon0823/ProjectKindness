@@ -52,7 +52,7 @@ public class BattleController : MonoBehaviour
                         Power = 1,
                         Life = 3,
                         Armor = 0,
-                        Speed = 10,
+                        Speed = 4,
                     }
                 },
                 {
